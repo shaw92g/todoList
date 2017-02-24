@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>TO DO LIST</title>
+	<style type="text/css">
+	.strike{
+		text-decoration: line-through;
+	}
+	</style>
+</head>
+<body>
+	<div>
+		<input type="text" id="inputArea">
+	</div>
+	<div id="displayArea">
+		<div id="pending">
+			Pending List: <br>
+		</div>
+		<div id="finished">
+			Finished List: <br>
+		</div>
+	</div>
+<script src="https://code.jquery.com/jquery-3.1.1.min.js" integrity="sha256-hVVnYaiADRTO2PzUGmuLJr8BLUSjGIZsDYGmIJLv2b8=" crossorigin="anonymous"></script>
+<script type="text/javascript">
+	function Model(){
+		var model = [];
+		
+		model.add= function(item){
+			var count = +localStorage.getItem("todoCount");
+			localStorage.setItem("todo"+count,item);
+			localStorage.setItem("todoFinishedStatus"+count,"false");
+			localStorage.setItem("todoCount",count+1);
+			var obj = {"data":item,finished:false};
+			this.push(obj);
+		}
+		model.markPending = function(index){
+			localStorage.setItem("todoFinishedStatus"+index,"false");
+			var x = this;
+			x[index].finished = false;
+		}
+		model.markFinished = function(index){
+			localStorage.setItem("todoFinishedStatus"+index,"true");
+			var x = this;
+			x[index].finished = true;
+		}
+
+		if(localStorage.getItem("todoCount") !== null){
+			var count = +localStorage.getItem("todoCount");
+			for(var i=0;i<count;i++){
+				var status = (localStorage.getItem("todoFinishedStatus"+i)==="true");
+				model.push({"data": localStorage.getItem("todo"+i),"finished":status});
+			}
+		}
+
+		// for(var i=0;i<initArr.length;i++){
+		// 	model.add(initArr[i]);
+		// }
+
+		return model;
+	}
+
+
+	function View(M,pendingContainer, finishedContainer){
+		function Block(item){
+			function ToDO(todoText){
+				var _this;
+				_this = document.createElement("span");
+				_this.className="todo";
+				_this.innerHTML = todoText;
+				return _this;
+			}
+			function Tick(){
+				var _this;
+				_this = document.createElement("input");
+				_this.setAttribute("type","checkbox");
+				return _this;
+			}
+
+			var _this; 
+			_this = document.createElement("div");
+			var tick = new Tick();
+			_this.appendChild(tick);
+			_this.appendChild(new ToDO(item));
+			return {node:_this,checkboxNode: tick};
+		}
+
+		var itemList = [];
+
+		function display(){
+			for(var i =0;i<M.length;i++){
+				addItem(M[i].data,i,M[i].finished);
+			}
+		}
+
+		function addItem(item,index,currStatus){
+			var b = new Block(item);
+			if(currStatus=== true){
+				b.node.className="strike";
+				b.checkboxNode.checked=true;
+				finishedContainer.appendChild(b.node);
+			}
+			else{
+				pendingContainer.appendChild(b.node);
+			}
+			b.checkboxNode.addEventListener("click",(function(){
+				return function(ev){
+						if(this.checked){
+							this.parentElement.remove();
+							itemList[index].node.className = "strike";
+							finishedContainer.appendChild(itemList[index].node);
+							M.markFinished(index);
+
+						}
+						else{
+							this.parentElement.remove();
+							itemList[index].node.className = "";
+							pendingContainer.appendChild(itemList[index].node);
+							M.markPending(index);
+						}
+				}
+			})(),false);
+			itemList.push(b);
+		}
+
+		function refresh(){
+			if(itemList.length === M.length-1){
+				var currIndex = M.length-1;
+				addItem(M[currIndex].data,currIndex, M[currIndex].finished);
+			}
+		}
+		display();
+		return {refreshList:refresh};
+	}
+
+
+	function Controller(M,V){
+		$("#inputArea").keypress(function(e) {
+		    if(e.which == 13) {
+		    	var data = this.value.trim();
+		        if(data.length > 0){
+		        	M.add(data);
+		        	V.refreshList();
+		        	this.value="";
+		        }
+		    }
+		});
+	}
+
+	var model = new Model([]);
+	var pendingArea = document.getElementById("pending");
+	var finishedArea = document.getElementById("finished");
+	var view = new View(model,pendingArea,finishedArea);
+	var ctrl = new Controller(model,view);
+
+</script>
+</body>
+</html>
